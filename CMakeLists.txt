@@ -34,8 +34,12 @@ endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_definitions(-DMILTON_DEBUG=1)
+  set(SDL2_MAIN ${SDL2DIR}/build/linux64/lib/libSDL2maind.a)
+  set(SDL2_LIB ${SDL2DIR}/build/linux64/lib/libSDL2d.a)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
   add_definitions(-DMILTON_DEBUG=0)
+  set(SDL2_MAIN ${SDL2DIR}/build/linux64/lib/libSDL2main.a)
+  set(SDL2_LIB ${SDL2DIR}/build/linux64/lib/libSDL2.a)
 else()
   message(FATAL_ERROR "Unknown build type: ${CMAKE_BUILD_TYPE}. Supported build types: Release, Debug.")
 endif()
@@ -107,8 +111,8 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     ${X11_LIBRARIES}
     ${OPENGL_LIBRARIES}
     ${XINPUT_LIBRARY}
-    ${SDL2DIR}/build/linux64/lib/libSDL2maind.a
-    ${SDL2DIR}/build/linux64/lib/libSDL2d.a
+    ${SDL2_MAIN}
+    ${SDL2_LIB}
     ${CMAKE_THREAD_LIBS_INIT}
     ${CMAKE_DL_LIBS}
     )
