@@ -14,10 +14,7 @@ struct MiltonPersist
     PATH_CHAR*  mlt_file_path;
     u32         mlt_binary_version;
     WallTime    last_save_time;
-    i64         last_save_stroke_count; // This is a workaround to MoveFileEx failing occasionally, particularly
-                                        // when the mlt file gets large.
-                                        // Check that all the strokes are saved at quit time in case
-                                        // the last MoveFileEx failed.
+
     float target_MB_per_sec;
 
     sz bytes_to_last_block;
@@ -27,6 +24,7 @@ PATH_CHAR* milton_get_last_canvas_fname();
 
 void milton_load(Milton* milton);
 u64 milton_save(Milton* milton);
+b32 milton_prompt_and_save_default_canvas_as(Milton* milton);
 
 void milton_save_buffer_to_file(PATH_CHAR* fname, u8* buffer, i32 w, i32 h);
 

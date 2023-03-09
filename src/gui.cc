@@ -432,7 +432,6 @@ gui_menu(MiltonInput* input, PlatformState* platform, Milton* milton, b32& show_
     int menu_style_stack = 0;
 
     MiltonGui* gui = milton->gui;
-    CanvasState* canvas = milton->canvas;
 
     // TODO: translate
 
@@ -440,62 +439,25 @@ gui_menu(MiltonInput* input, PlatformState* platform, Milton* milton, b32& show_
         if ( ImGui::BeginMainMenuBar() ) {
             if ( ImGui::BeginMenu(loc(TXT_file)) ) {
                 if ( ImGui::MenuItem(loc(TXT_new_milton_canvas)) ) {
-                    b32 save_file = false;
-                    if ( layer::count_strokes(milton->canvas->root_layer) > 0 ) {
-                        if ( milton->flags & MiltonStateFlags_DEFAULT_CANVAS ) {
-                            save_file = platform_dialog_yesno(loc(TXT_default_will_be_cleared), "Save?");
-                        }
+                    if ( milton_prompt_and_save_default_canvas_as(milton) )
+                    {
+                        // New Canvas
+                        milton_reset_canvas_and_set_default(milton);
+                        input->flags |= MiltonInputFlags_FULL_REFRESH;
+                        milton->flags |= MiltonStateFlags_DEFAULT_CANVAS;
                     }
-                    if ( save_file ) {
-                        PATH_CHAR* name = platform_save_dialog(FileKind_MILTON_CANVAS);
-                        if ( name ) {
-                            milton_log("Saving to %s\n", name);
-                            milton_set_canvas_file(milton, name);
-                            milton_save(milton);
-                            b32 del = platform_delete_file_at_config(TO_PATH_STR("MiltonPersist.mlt"), DeleteErrorTolerance_OK_NOT_EXIST);
-                            if ( del == false ) {
-                                platform_dialog("Could not delete contents. The work will be still be there even though you saved it to a file.",
-                                                "Info");
-                            }
-                        }
-                    }
-
-                    // New Canvas
-                    milton_reset_canvas_and_set_default(milton);
-                    canvas = milton->canvas;
-                    input->flags |= MiltonInputFlags_FULL_REFRESH;
-                    milton->flags |= MiltonStateFlags_DEFAULT_CANVAS;
                 }
-                b32 save_requested = false;
                 if ( ImGui::MenuItem(loc(TXT_open_milton_canvas)) ) {
-                    // If current canvas is MiltonPersist, then prompt to save
-                    if ( ( milton->flags & MiltonStateFlags_DEFAULT_CANVAS ) ) {
-                        b32 save_file = false;
-                        if ( layer::count_strokes(milton->canvas->root_layer) > 0 ) {
-                            save_file = platform_dialog_yesno(loc(TXT_default_will_be_cleared), "Save?");
+                    if ( milton_prompt_and_save_default_canvas_as(milton) )
+                    {
+                        PATH_CHAR* fname = platform_open_dialog(FileKind_MILTON_CANVAS);
+                        if ( fname ) {
+                            milton_set_canvas_file(milton, fname);
+                            input->flags |= MiltonInputFlags_OPEN_FILE;
                         }
-                        if ( save_file ) {
-                            PATH_CHAR* name = platform_save_dialog(FileKind_MILTON_CANVAS);
-                            if ( name ) {
-                                milton_log("Saving to %s\n", name);
-                                milton_set_canvas_file(milton, name);
-                                milton_save(milton);
-                                b32 del = platform_delete_file_at_config(TO_PATH_STR("MiltonPersist.mlt"),
-                                                                         DeleteErrorTolerance_OK_NOT_EXIST);
-                                if ( del == false ) {
-                                    platform_dialog("Could not delete default canvas. Contents will be still there when you create a new canvas.",
-                                                    "Info");
-                                }
-                            }
-                        }
-                    }
-                    PATH_CHAR* fname = platform_open_dialog(FileKind_MILTON_CANVAS);
-                    if ( fname ) {
-                        milton_set_canvas_file(milton, fname);
-                        input->flags |= MiltonInputFlags_OPEN_FILE;
                     }
                 }
-                if ( ImGui::MenuItem(loc(TXT_save_milton_canvas_as_DOTS)) || save_requested ) {
+                if ( ImGui::MenuItem(loc(TXT_save_milton_canvas_as_DOTS)) ) {
                     // NOTE(possible refactor): There is a copy of this at milton.c end of file
                     PATH_CHAR* name = platform_save_dialog(FileKind_MILTON_CANVAS);
                     if ( name ) {

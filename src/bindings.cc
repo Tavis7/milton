@@ -1,6 +1,7 @@
 // Copyright (c) 2015 Sergio Gonzalez. All rights reserved.
 // License: https://github.com/serge-rgb/milton#license
 
+#include "localization.h"
 #include "bindings.h"
 #include "milton.h"
 #include "gui.h"
@@ -99,8 +100,6 @@ set_default_bindings(MiltonBindings* bs)
 void
 binding_dispatch_action(BindableAction a, MiltonInput* input, Milton* milton, v2i pointer)
 {
-    char* default_will_be_lost = "The default canvas will be cleared. Save it?";
-
     switch (a) {
         case Action_DECREASE_BRUSH_SIZE: {
             milton_decrease_brush_size(milton);
@@ -129,30 +128,12 @@ binding_dispatch_action(BindableAction a, MiltonInput* input, Milton* milton, v2
             milton_try_quit(milton);
         } break;
         case Action_NEW: {
-            YesNoCancelAnswer save_file = YesNoCancelAnswer::NO_;
-            if ( layer::count_strokes(milton->canvas->root_layer) > 0 ) {
-                if ( milton->flags & MiltonStateFlags_DEFAULT_CANVAS ) {
-                    save_file = platform_dialog_yesnocancel(default_will_be_lost, "Save?");
-                }
+            if ( milton_prompt_and_save_default_canvas_as(milton) )
+            {
+                milton_reset_canvas_and_set_default(milton);
+                input->flags |= MiltonInputFlags_FULL_REFRESH;
+                milton->flags |= MiltonStateFlags_DEFAULT_CANVAS;
             }
-            if ( save_file == YesNoCancelAnswer::CANCEL_ )
-                break;
-            if ( save_file == YesNoCancelAnswer::YES_ ) {
-                PATH_CHAR* name = platform_save_dialog(FileKind_MILTON_CANVAS);
-                if ( !name ) // save dialog was cancelled
-                    break;
-                milton_log("Saving to %s\n", name);
-                milton_set_canvas_file(milton, name);
-                milton_save(milton);
-                b32 del = platform_delete_file_at_config(TO_PATH_STR("MiltonPersist.mlt"), DeleteErrorTolerance_OK_NOT_EXIST);
-                if ( del == false ) {
-                    platform_dialog("Could not delete contents. The work will be still be there even though you saved it to a file.",
-                        "Info");
-                }
-            }
-            milton_reset_canvas_and_set_default(milton);
-            input->flags |= MiltonInputFlags_FULL_REFRESH;
-            milton->flags |= MiltonStateFlags_DEFAULT_CANVAS;
         } break;
         case Action_SAVE: {
             INVALID_CODE_PATH;
@@ -163,41 +144,24 @@ binding_dispatch_action(BindableAction a, MiltonInput* input, Milton* milton, v2
                 milton_log("Saving to %s\n", name);
                 milton_set_canvas_file(milton, name);
                 input->flags |= MiltonInputFlags_SAVE_FILE;
+
+                // TODO BUG: File hasn't been saved yet. If we crash before then, it will be lost.
                 b32 del = platform_delete_file_at_config(TO_PATH_STR("MiltonPersist.mlt"),
-                    DeleteErrorTolerance_OK_NOT_EXIST);
+                        DeleteErrorTolerance_OK_NOT_EXIST);
                 if ( del == false ) {
                     platform_dialog("Could not delete default canvas. Contents will be still there when you create a new canvas.",
-                        "Info");
+                            "Info");
                 }
             }
         } break;
         case Action_OPEN: {
-            b32 save_requested = false;
-            // If current canvas is MiltonPersist, then prompt to save
-            if ( ( milton->flags & MiltonStateFlags_DEFAULT_CANVAS ) ) {
-                b32 save_file = false;
-                if ( layer::count_strokes(milton->canvas->root_layer) > 0 ) {
-                    save_file = platform_dialog_yesno(default_will_be_lost, "Save?");
+            if ( milton_prompt_and_save_default_canvas_as(milton) )
+            {
+                PATH_CHAR* fname = platform_open_dialog(FileKind_MILTON_CANVAS);
+                if ( fname ) {
+                    milton_set_canvas_file(milton, fname);
+                    input->flags |= MiltonInputFlags_OPEN_FILE;
                 }
-                if ( save_file ) {
-                    PATH_CHAR* name = platform_save_dialog(FileKind_MILTON_CANVAS);
-                    if ( name ) {
-                        milton_log("Saving to %s\n", name);
-                        milton_set_canvas_file(milton, name);
-                        milton_save(milton);
-                        b32 del = platform_delete_file_at_config(TO_PATH_STR("MiltonPersist.mlt"),
-                            DeleteErrorTolerance_OK_NOT_EXIST);
-                        if ( del == false ) {
-                            platform_dialog("Could not delete default canvas. Contents will be still there when you create a new canvas.",
-                                "Info");
-                        }
-                    }
-                }
-            }
-            PATH_CHAR* fname = platform_open_dialog(FileKind_MILTON_CANVAS);
-            if ( fname ) {
-                milton_set_canvas_file(milton, fname);
-                input->flags |= MiltonInputFlags_OPEN_FILE;
             }
         } break;
         case Action_TOGGLE_MENU: {

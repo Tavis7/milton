@@ -472,10 +472,23 @@ end_data_tracking()
 u64
 milton_save(Milton* milton)
 {
+    // TODO IMPORTANT CRITICAL ROBUSTNESS Test coverage is important here
+    //
+    // Need to test the following:
+    //  - File can't be opened
+    //  - Data can't be written
+    //  - ...
+    //
+    // Never die here. Always report to the user that something is wrong and let them try again.
+    //  - Should dump as much data as possible
+    //          - Ask the user for a suitable location if default fails or
+    //                  file size is growing too fast
+    //  - Manual recovery may be necessary, but try not to lose data
+
+    b32 save_failed = false;
+
     begin_data_tracking();
-    // Declaring variables here to silence compiler warnings about GOTO jumping declarations.
-    i32 history_count = 0;
-    u32 milton_binary_version = 0;
+
     milton->flags |= MiltonStateFlags_LAST_SAVE_FAILED;  // Assume failure. Remove flag on success.
 
     int pid = (int)getpid();
@@ -490,7 +503,7 @@ milton_save(Milton* milton)
         u32 milton_magic = MILTON_MAGIC_NUMBER;
 
         if ( write_data(&milton_magic, sizeof(u32), 1, fd) ) {
-            milton_binary_version = milton->persist->mlt_binary_version;
+            u32 milton_binary_version = milton->persist->mlt_binary_version;
             i32 num_layers = layer::number_of_layers(milton->canvas->root_layer);
 
             mlt_assert(sizeof(CanvasView) == milton->view->size);
@@ -509,10 +522,16 @@ milton_save(Milton* milton)
                 for ( Layer* layer = milton->canvas->root_layer;
                       could_write_layer_contents && layer;
                       layer=layer->next  ) {
-                    if ( layer->strokes.count > INT_MAX ) {
-                        milton_die_gracefully("FATAL. Number of strokes in layer greater than can be stored in file format. ");
+#define FILE_FORMAT_LAYER_MAX_STROKES INT_MAX
+                    if ( layer->strokes.count > FILE_FORMAT_LAYER_MAX_STROKES ) {
+                        // TODO BUG Notify user that save failed
+                        // TODO ROBUSTNESS Skip layer for now and save it somewhere else in case strokes->count got corrupted
+                        milton_log("Save failed: Number of strokes in layer greater than can be stored in file format\n");
+                        milton_log("    (Only saving the first %ld strokes)\n", FILE_FORMAT_LAYER_MAX_STROKES);
+                        save_failed = true;
                     }
-                    i32 num_strokes = (i32)layer->strokes.count;
+
+                    i32 num_strokes = MIN((i32)layer->strokes.count, FILE_FORMAT_LAYER_MAX_STROKES);
                     char* name = layer->name;
                     i32 len = (i32)(strlen(name) + 1);
 
@@ -529,6 +548,7 @@ milton_save(Milton* milton)
                               ++stroke_i ) {
                             Stroke* stroke = get(&layer->strokes, stroke_i);
                             mlt_assert(stroke->num_points > 0);
+                            // TODO BUG Save as many points as possible
                             if ( stroke->num_points > 0 && stroke->num_points <= STROKE_MAX_POINTS ) {
                                 i32 size_of_brush = sizeof(Brush);
                                 if ( !write_data(&size_of_brush, sizeof(i32), 1, fd ) ||
@@ -542,7 +562,7 @@ milton_save(Milton* milton)
                                     break;
                                 }
                             } else {
-                                milton_log("WARNING: Trying to write a stroke of size %d\n", stroke->num_points);
+                                milton_log("WARNING: Trying to write a stroke of size %d (bigger than: %d)\n", stroke->num_points, STROKE_MAX_POINTS);
                             }
                         }
                     } else {
@@ -633,7 +653,7 @@ milton_save(Milton* milton)
                         }
 
                         if ( could_write_brushes ) {
-                            history_count = (i32)milton->canvas->history.count;
+                            i32 history_count = (i32)milton->canvas->history.count;
                             if ( milton->canvas->history.count > INT_MAX ) {
                                 history_count = 0;
                             }
@@ -692,21 +712,25 @@ milton_save(Milton* milton)
             }
         }
 
+        save_failed = save_failed | !could_write_milton_state;
+
         int file_error = ferror(fd);
         if ( file_error == 0 ) {
             int close_ret = fclose(fd);
             if ( close_ret == 0 ) {
-                if ( !could_write_milton_state ) {
+                if ( save_failed ) {
                     platform_dialog("Milton failed to write to the file!", "Save error.");
                 }
                 else {
                     if ( platform_move_file(tmp_fname, milton->persist->mlt_file_path) ) {
                         //  \o/
-                        milton_save_postlude(milton);
+                        MiltonPersist* p = milton->persist;
+                        p->last_save_time = platform_get_walltime();
+
+                        milton->flags &= ~MiltonStateFlags_LAST_SAVE_FAILED;
                     }
                     else {
                         milton_log("Could not move file. Moving on. Avoiding this save.\n");
-                        milton->flags |= MiltonStateFlags_MOVE_FILE_FAILED;
                     }
                 }
             }
@@ -717,14 +741,50 @@ milton_save(Milton* milton)
         else {
             milton_log("File IO error. Error code %d. \n", file_error);
         }
-
-
     }
     else {
-        milton_die_gracefully("Could not create file for saving! ");
+        // TODO BUG: Notify user that save failed
+        milton_log("Save failed: Could not create file for saving!\n");
     }
-    u64 bytes_written = end_data_tracking();
+
+    u32 bytes_written = end_data_tracking();
     return bytes_written;
+}
+
+b32
+milton_prompt_and_save_default_canvas_as(Milton* milton)
+{
+    YesNoCancelAnswer save_file = YesNoCancelAnswer::NO_;
+    // TODO BUG: What does this do with multiple layers?
+    if ( layer::count_strokes(milton->canvas->root_layer) > 0 ) {
+        if ( milton->flags & MiltonStateFlags_DEFAULT_CANVAS ) {
+            // TODO Localize "Save?"
+            save_file = platform_dialog_yesnocancel(loc(TXT_MSG_default_canvas_clear_prompt), "Save?");
+        }
+    }
+    if ( save_file == YesNoCancelAnswer::CANCEL_ )
+        return false;
+
+    if ( save_file == YesNoCancelAnswer::YES_ ) {
+        PATH_CHAR* name = platform_save_dialog(FileKind_MILTON_CANVAS);
+        if ( !name ) // save dialog was cancelled
+            return false;
+        milton_log("Saving to %s\n", name);
+        milton_set_canvas_file(milton, name);
+
+        milton_save(milton);
+
+        if ( !(milton->flags & MiltonStateFlags_LAST_SAVE_FAILED) )
+        {
+            b32 del = platform_delete_file_at_config(TO_PATH_STR("MiltonPersist.mlt"), DeleteErrorTolerance_OK_NOT_EXIST);
+            if ( del == false ) {
+                platform_dialog("Could not delete the default canvas. The current drawing may still be there when you try to create a new one.",
+                        "Info");
+            }
+        }
+    }
+
+    return true;
 }
 
 PATH_CHAR*

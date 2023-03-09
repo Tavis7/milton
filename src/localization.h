@@ -32,6 +32,7 @@ enum Texts
     TXT_final_image_resolution,
     TXT_export_selection_to_image_DOTS,
     TXT_MSG_memerr_did_not_write,
+    TXT_MSG_default_canvas_clear_prompt,
     TXT_error,
     TXT_cancel,
     TXT_view,

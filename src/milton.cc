@@ -918,16 +918,6 @@ milton_try_quit(Milton* milton)
     milton->flags &= ~MiltonStateFlags_RUNNING;
 }
 
-void
-milton_save_postlude(Milton* milton)
-{
-    MiltonPersist* p = milton->persist;
-    p->last_save_time = platform_get_walltime();
-    p->last_save_stroke_count = layer::count_strokes(milton->canvas->root_layer);
-
-    milton->flags &= ~MiltonStateFlags_LAST_SAVE_FAILED;
-}
-
 #if MILTON_SAVE_ASYNC
 void
 trigger_async_save(Milton* milton)
@@ -1778,6 +1768,7 @@ milton_update_and_render(Milton* milton, MiltonInput const* input)
     if ( should_save ) {
         if ( !(milton->flags & MiltonStateFlags_RUNNING) ) {
             // Always save synchronously when exiting.
+            milton_log("Synchronously saving at program exit\n");
             milton_save(milton);
         } else {
 #if MILTON_SAVE_ASYNC
@@ -1788,38 +1779,54 @@ milton_update_and_render(Milton* milton, MiltonInput const* input)
         }
         // We're about to close and the last save failed and the drawing changed.
         if (    !(milton->flags & MiltonStateFlags_RUNNING)
-             && (milton->flags & MiltonStateFlags_LAST_SAVE_FAILED)
-             && (milton->flags & MiltonStateFlags_MOVE_FILE_FAILED)
-             && milton->persist->last_save_stroke_count != layer::count_strokes(milton->canvas->root_layer) ) {
+             && (milton->flags & MiltonStateFlags_LAST_SAVE_FAILED) ) {
+            milton_log("Attempt to save failed. Trying again.\n");
+
             // TODO: Stop using MoveFileEx?
             //  Why does MoveFileEx fail? Ask someone who knows this stuff.
             // Wait a moment and try again. If this fails, prompt to save somewhere else.
             SDL_Delay(3000);
             milton_save(milton);
 
-            if (    (milton->flags & MiltonStateFlags_LAST_SAVE_FAILED)
-                 && (milton->flags & MiltonStateFlags_MOVE_FILE_FAILED) ) {
-                char msg[1024];
+            if ( (milton->flags & MiltonStateFlags_LAST_SAVE_FAILED) ) {
                 WallTime lst = milton->persist->last_save_time;
-                snprintf(msg, 1024, "Milton failed to save this canvas. The last successful save was at %.2d:%.2d:%.2d. Try saving to another file?",
-                         lst.hours, lst.minutes, lst.seconds);
+
+                milton_log("Attempt to save failed again. Asking user what to do.\n");
+
+                // TODO Allow user to cancel closing the program
+
+                char msg[1024];
+                snprintf(msg, sizeof(msg), "Milton failed to save this canvas. The last successful save was at %.2d:%.2d:%.2d. Try saving to another file?",
+                        lst.hours, lst.minutes, lst.seconds);
                 b32 another = platform_dialog_yesno(msg, "Try another file?");
-                if ( another ) {
-                    // NOTE(possible refactor): There is similar code. Guipp.cpp save_milton_canvas
+                while ( another && (milton->flags & MiltonStateFlags_LAST_SAVE_FAILED) )
+                {
                     PATH_CHAR* name = platform_save_dialog(FileKind_MILTON_CANVAS);
                     if ( name ) {
                         milton_log("Saving to %s\n", name);
                         milton_set_canvas_file(milton, name);
                         milton_save(milton);
                         if ( (milton->flags & MiltonStateFlags_LAST_SAVE_FAILED) ) {
-                            platform_dialog("Still can't save. Please contact us for help. miltonpaint.com", "Info");
+                            another = platform_dialog_yesno("Still can't save.\n\n"
+                                    "Please contact us for help: miltonpaint.com/help\n\n"
+                                    "Try again?", "Info");
                         } else {
-                            platform_dialog("Success.", "Info");
+                            milton_log("Successfully saved to %s\n", name);
+
+                            char successMsg[1024];
+                            snprintf(successMsg, sizeof(successMsg), "Successfully saved to %s", name);
+                            platform_dialog(successMsg, "Info");
                         }
-                        b32 del = platform_delete_file_at_config(TO_PATH_STR("MiltonPersist.mlt"), DeleteErrorTolerance_OK_NOT_EXIST);
-                        if ( del == false ) {
-                            platform_dialog("Could not delete default canvas."
-                                            " Contents will be still there when you create a new canvas.", "Info");
+                        if ( !(milton->flags & MiltonStateFlags_LAST_SAVE_FAILED) )
+                        {
+                            // TODO Refactor this into a genenral save prompt function
+                            // TODO BUG: Check that we didn't just save to MiltonPersist.mlt
+                            // TODO BUG: Destroys data if user saves to the persist file
+                            b32 del = platform_delete_file_at_config(TO_PATH_STR("MiltonPersist.mlt"), DeleteErrorTolerance_OK_NOT_EXIST);
+                            if ( del == false ) {
+                                platform_dialog("Could not delete default canvas."
+                                        " Contents will be still there when you create a new canvas.", "Info");
+                            }
                         }
                     }
                 }
@@ -1894,7 +1901,7 @@ milton_update_and_render(Milton* milton, MiltonInput const* input)
     static f32 angle_of_last_full_redraw = 0.0f;
 
     if (scale_of_last_full_redraw != milton_render_scale(milton) ||
-        angle_of_last_full_redraw != milton->view->angle ) {
+            angle_of_last_full_redraw != milton->view->angle ) {
         // We want to draw everything when we're scaling up and down.
         milton->render_settings.do_full_redraw = true;
     }
@@ -1925,8 +1932,8 @@ milton_update_and_render(Milton* milton, MiltonInput const* input)
     i64 render_scale = milton_render_scale(milton);
 
     gpu_clip_strokes_and_update(&milton->root_arena, milton->renderer, milton->view, render_scale,
-                                milton->canvas->root_layer, &milton->working_stroke,
-                                view_x, view_y, view_width, view_height, clip_flags);
+            milton->canvas->root_layer, &milton->working_stroke,
+            view_x, view_y, view_width, view_height, clip_flags);
     PROFILE_GRAPH_END(clipping);
 
     gpu_render(milton->renderer, view_x, view_y, view_width, view_height);

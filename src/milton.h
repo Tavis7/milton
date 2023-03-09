@@ -255,7 +255,7 @@ enum MiltonStateFlags
                                             // 1 << 7 unused
                                             // 1 << 8 unused
     MiltonStateFlags_LAST_SAVE_FAILED       = 1 << 9,
-    MiltonStateFlags_MOVE_FILE_FAILED       = 1 << 10,
+                                            // 1 << 10 unused
     MiltonStateFlags_BRUSH_SMOOTHING        = 1 << 11,
 };
 
