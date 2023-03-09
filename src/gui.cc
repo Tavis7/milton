@@ -623,7 +623,7 @@ gui_menu(MiltonInput* input, PlatformState* platform, Milton* milton, b32& show_
             WallTime lst = milton->persist->last_save_time;
 
             // TODO: Translate!
-            snprintf(msg, 1024, "\t%s -- Last saved: %.2d:%.2d:%.2d\t\tZoom level %.2f",
+            snprintf(msg, sizeof(msg), "\t%s -- Last saved: %.2d:%.2d:%.2d\t\tZoom level %.2f",
                      (milton->flags & MiltonStateFlags_DEFAULT_CANVAS) ? loc(TXT_OPENBRACKET_default_canvas_CLOSE_BRACKET):
                      file_name,
                      lst.hours, lst.minutes, lst.seconds,
@@ -631,7 +631,7 @@ gui_menu(MiltonInput* input, PlatformState* platform, Milton* milton, b32& show_
                      // reference to the user, where 1.0 is the default. For
                      // our calculations in other places, we don't do the
                      // divide.
-                     log2(1 + milton->view->scale / (double)MILTON_DEFAULT_SCALE) / log2(SCALE_FACTOR));
+                     log2(1 + milton->view->scale / (double)MILTON_DEFAULT_SCALE));
 
             if ( ImGui::BeginMenu(msg, /*bool enabled = */false) ) {
                 ImGui::EndMenu();

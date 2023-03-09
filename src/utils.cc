@@ -463,9 +463,10 @@ rect_from_xywh(i32 x, i32 y, i32 w, i32 h)
 }
 
 void
-utf16_to_utf8_simple(char* , char* )
+utf16_to_utf8_simple(char* from, char* to)
 {
-    // Nothing needs to be done
+    while (*to++ = *from++)
+        ;
 }
 
 void
