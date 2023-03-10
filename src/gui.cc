@@ -743,7 +743,7 @@ milton_imgui_tick(MiltonInput* input, PlatformState* platform,  Milton* milton, 
 
         // Settings window
         if ( show_settings ) {
-            ImGui::SetNextWindowSize(ImVec2(ui_scale*400, ui_scale*400),
+            ImGui::SetNextWindowSize(ImVec2(ui_scale*450, ui_scale*400),
                                      ImGuiSetCond_FirstUseEver);
             if ( ImGui::Begin(loc(TXT_settings)) ) {
                 if (ImGui::Button(loc(TXT_ok))) {
@@ -785,10 +785,13 @@ milton_imgui_tick(MiltonInput* input, PlatformState* platform,  Milton* milton, 
                     Binding* b = bs->bindings + i;
 
                     char control_lbl[64] = {};
-                    snprintf(control_lbl, array_count(control_lbl), "control##%d", (int)i);
+                    snprintf(control_lbl, array_count(control_lbl), "ctrl##%d", (int)i);
 
                     char alt_lbl[64] = {};
                     snprintf(alt_lbl, array_count(alt_lbl), "alt##%d", (int)i);
+
+                    char shift_lbl[64] = {};
+                    snprintf(shift_lbl, array_count(shift_lbl), "shift##%d", (int)i);
 
                     char win_lbl[64] = {};
                     snprintf(win_lbl, array_count(win_lbl), "win##%d", (int)i);
@@ -798,10 +801,12 @@ milton_imgui_tick(MiltonInput* input, PlatformState* platform,  Milton* milton, 
                     ImGui::SameLine();
                     ImGui::CheckboxFlags(alt_lbl, (unsigned int*)&b->modifiers, Modifier_ALT);
                     ImGui::SameLine();
+                    ImGui::CheckboxFlags(shift_lbl, (unsigned int*)&b->modifiers, Modifier_SHIFT);
+                    ImGui::SameLine();
                     ImGui::CheckboxFlags(win_lbl, (unsigned int*)&b->modifiers, Modifier_WIN);
                     ImGui::SameLine();
 
-                    ImGui::PushItemWidth(60);
+                    ImGui::PushItemWidth(30);
                     // mlt_assert(TXT_Action_FIRST + (int)i < TXT_Count);
                     char* action_str = (char*)loc((Texts)(TXT_Action_FIRST + (int)i - Action_FIRST));
                     if (ImGui::InputText(action_str,
