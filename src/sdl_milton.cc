@@ -968,7 +968,7 @@ milton_main(bool is_fullscreen, char* file_to_open)
         platform.force_next_frame = true;
         #endif
         // IMGUI events might update until the frame after they are created.
-        if ( !platform.force_next_frame ) {
+        if ( !platform.force_next_frame && !platform.should_quit ) {
             SDL_WaitEvent(NULL);
         }
         else {
