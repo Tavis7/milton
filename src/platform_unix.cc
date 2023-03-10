@@ -18,6 +18,7 @@ unix_log_args(char* format, va_list args)
 
     if ( num_bytes_written > 0 ) {
         printf("%s", message);
+        fflush(stdout);
         if (!g_unix_logfile) {
             char fname[MAX_PATH] = TO_PATH_STR("milton.log");
             platform_fname_at_config(fname, MAX_PATH);
@@ -28,6 +29,7 @@ unix_log_args(char* format, va_list args)
         }
         if (g_unix_logfile) {
             fwrite(message, 1, num_bytes_written, g_unix_logfile);
+            fflush(g_unix_logfile);
         }
     }
 }
