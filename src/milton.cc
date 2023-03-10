@@ -503,6 +503,7 @@ milton_set_canvas_file_(Milton* milton, PATH_CHAR* fname, b32 is_default)
     u64 len = PATH_STRLEN(fname);
     if ( len > MAX_PATH ) {
         milton_log("milton_set_canvas_file: fname was too long %lu\n", len);
+        // TODO BUG: Will be deleted if canvas is reset. Keep current filename.
         fname = TO_PATH_STR("MiltonPersist.mlt");
     }
     milton->persist->mlt_file_path = fname;
@@ -1387,19 +1388,11 @@ milton_update_and_render(Milton* milton, MiltonInput const* input)
 
     milton->flags &= ~MiltonStateFlags_FINISH_CURRENT_STROKE;
 
-    milton->render_settings.do_full_redraw = false;
-
     b32 brush_outline_should_draw = false;
     int render_flags = RenderBackendFlags_NONE;
 
     b32 draw_custom_rectangle = false;  // Custom rectangle used for new strokes, undo/redo.
 
-    b32 should_save =
-            ((input->flags & MiltonInputFlags_OPEN_FILE)) ||
-            ((input->flags & MiltonInputFlags_SAVE_FILE)) ||
-            ((input->flags & MiltonInputFlags_END_STROKE)) ||
-            ((input->flags & MiltonInputFlags_UNDO)) ||
-            ((input->flags & MiltonInputFlags_REDO));
 
     if ( input->flags & MiltonInputFlags_OPEN_FILE ) {
         milton_load(milton);
@@ -1479,12 +1472,15 @@ milton_update_and_render(Milton* milton, MiltonInput const* input)
                         push(&milton->canvas->redo_stack, h);
 
                         milton->render_settings.do_full_redraw = true;
+                        milton->canvas->has_unsaved_changes = true;
                     }
                     break;
                 }
             }
         }
         else if ( (input->flags & MiltonInputFlags_REDO) ) {
+            // TODO BUG: Undo and redo on same frame should cancel
+            // Consider signed undo/redo count
             if ( milton->canvas->redo_stack.count > 0 ) {
                 HistoryElement h = pop(&milton->canvas->redo_stack);
                 switch ( h.type ) {
@@ -1497,6 +1493,7 @@ milton_update_and_render(Milton* milton, MiltonInput const* input)
                             push(&milton->canvas->history, h);
 
                             milton->render_settings.do_full_redraw = true;
+                            milton->canvas->has_unsaved_changes = true;
 
                             break;
                         }
@@ -1759,13 +1756,12 @@ milton_update_and_render(Milton* milton, MiltonInput const* input)
     PROFILE_GRAPH_END(update);
 
     if ( !(milton->flags & MiltonStateFlags_RUNNING) ) {
-        // Someone tried to kill milton from outside the update. Make sure we save.
-        should_save = true;
         // Don't want to leave the system with the cursor hidden.
         platform_cursor_show();
     }
 
-    if ( should_save ) {
+    if ( (milton->canvas->has_unsaved_changes) ||
+            ((input->flags & MiltonInputFlags_SAVE_FILE)) ) {
         if ( !(milton->flags & MiltonStateFlags_RUNNING) ) {
             // Always save synchronously when exiting.
             milton_log("Synchronously saving at program exit\n");
@@ -1832,17 +1828,17 @@ milton_update_and_render(Milton* milton, MiltonInput const* input)
                 }
             }
         }
+    }
 
 
-        // About to quit.
-        if ( !(milton->flags & MiltonStateFlags_RUNNING) ) {
-            milton_kill_save_thread(milton);
-            // Release resources
-            milton_reset_canvas(milton);
-            gpu_release_data(milton->renderer);
+    // About to quit.
+    if ( !(milton->flags & MiltonStateFlags_RUNNING) ) {
+        milton_kill_save_thread(milton);
+        // Release resources
+        milton_reset_canvas(milton);
+        gpu_release_data(milton->renderer);
 
-            debug_memory_dump_allocations();
-        }
+        debug_memory_dump_allocations();
     }
 
 #if MILTON_SAVE_ASYNC
@@ -1916,6 +1912,8 @@ milton_update_and_render(Milton* milton, MiltonInput const* input)
         clip_flags = ClipFlags_UPDATE_GPU_DATA;
         scale_of_last_full_redraw = milton_render_scale(milton);
         angle_of_last_full_redraw = milton->view->angle;
+
+        milton->render_settings.do_full_redraw = false;
     }
     else if (has_working_stroke) {
         Rect bounds  = canvas_to_raster_bounding_rect(milton->view, milton->working_stroke.bounding_rect);

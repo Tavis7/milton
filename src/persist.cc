@@ -469,8 +469,8 @@ end_data_tracking()
     return g_bytes_written;
 }
 
-u64
-milton_save(Milton* milton)
+milton_save_return
+milton_save_as(Milton* milton, PATH_CHAR* filename)
 {
     // TODO IMPORTANT CRITICAL ROBUSTNESS Test coverage is important here
     //
@@ -486,14 +486,13 @@ milton_save(Milton* milton)
     //  - Manual recovery may be necessary, but try not to lose data
 
     b32 save_failed = false;
+    b32 save_succeeded = false;
 
     begin_data_tracking();
 
-    milton->flags |= MiltonStateFlags_LAST_SAVE_FAILED;  // Assume failure. Remove flag on success.
-
     int pid = (int)getpid();
     PATH_CHAR tmp_fname[MAX_PATH] = {};
-    PATH_SNPRINTF(tmp_fname, MAX_PATH, TO_PATH_STR("%s.mlt_tmp_%d"), milton->persist->mlt_file_path, pid);
+    PATH_SNPRINTF(tmp_fname, MAX_PATH, TO_PATH_STR("%s.mlt_tmp_%d"), filename, pid);
 
     FILE* fd = platform_fopen(tmp_fname, TO_PATH_STR("wb"));
 
@@ -722,12 +721,13 @@ milton_save(Milton* milton)
                     platform_dialog("Milton failed to write to the file!", "Save error.");
                 }
                 else {
-                    if ( platform_move_file(tmp_fname, milton->persist->mlt_file_path) ) {
+                    if ( platform_move_file(tmp_fname, filename) ) {
                         //  \o/
                         MiltonPersist* p = milton->persist;
                         p->last_save_time = platform_get_walltime();
 
-                        milton->flags &= ~MiltonStateFlags_LAST_SAVE_FAILED;
+                        milton->canvas->has_unsaved_changes = false;
+                        save_succeeded = true;
                     }
                     else {
                         milton_log("Could not move file. Moving on. Avoiding this save.\n");
@@ -747,8 +747,23 @@ milton_save(Milton* milton)
         milton_log("Save failed: Could not create file for saving!\n");
     }
 
-    u32 bytes_written = end_data_tracking();
-    return bytes_written;
+    milton_save_return result = {};
+    result.bytes_written = end_data_tracking();
+    result.error = save_failed | !save_succeeded;
+    return result;
+}
+
+u64
+milton_save(Milton* milton)
+{
+    milton->flags |= MiltonStateFlags_LAST_SAVE_FAILED;  // Assume failure. Remove flag on success.
+    milton_save_return result = milton_save_as(milton, milton->persist->mlt_file_path);
+    if ( !result.error )
+    {
+        milton->flags &= ~MiltonStateFlags_LAST_SAVE_FAILED;
+    }
+
+    return result.bytes_written;
 }
 
 b32

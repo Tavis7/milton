@@ -102,6 +102,10 @@ enum Texts
     TXT_grid_columns,
     TXT_grid_rows,
 
+    TXT_always_switch,
+    TXT_never_switch,
+    TXT_ask,
+
     // Actions
     TXT_Action_FIRST,
     TXT_Action_DECREASE_BRUSH_SIZE = TXT_Action_FIRST,

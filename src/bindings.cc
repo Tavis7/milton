@@ -97,6 +97,51 @@ set_default_bindings(MiltonBindings* bs)
     #endif
 }
 
+void save_as_dialog(Milton* milton)
+{
+    PATH_CHAR* name = platform_save_dialog(FileKind_MILTON_CANVAS);
+    if ( name ) {
+        if ( !(milton_save_as(milton, name).error) ) {
+            char msg[1024];
+            snprintf(msg, sizeof(msg),
+                    "Successfully wrote save to %s. Would you like to edit it?",
+                    name);
+
+            b32 was_tmp_file = false;
+
+            if ( milton->flags & MiltonStateFlags_DEFAULT_CANVAS )
+            {
+                was_tmp_file = true;
+            }
+
+            if ( (milton->settings->switch_save_target == SwitchSaveTarget_ON_SAVE) ||
+                    ((milton->settings->switch_save_target == SwitchSaveTarget_ASK) &&
+                     platform_dialog_yesno(msg, "Switch to new file?")) ) {
+                milton_set_canvas_file(milton, name);
+
+                if ( was_tmp_file )
+                {
+                    b32 del = platform_delete_file_at_config(TO_PATH_STR("MiltonPersist.mlt"),
+                            DeleteErrorTolerance_OK_NOT_EXIST);
+                    if ( del == false ) {
+                        platform_dialog("Could not delete the default canvas. The current drawing may still be there when you try to create a new one.",
+                                "Info");
+                    }
+                }
+            }
+        }
+        else
+        {
+            char msg[1024];
+            snprintf(msg, sizeof(msg),
+                    "Could not save to %s",
+                    name);
+            platform_dialog(msg, "Warning");
+        }
+        // TODO Force next frame
+    }
+}
+
 void
 binding_dispatch_action(BindableAction a, MiltonInput* input, Milton* milton, v2i pointer)
 {
@@ -128,33 +173,22 @@ binding_dispatch_action(BindableAction a, MiltonInput* input, Milton* milton, v2
             milton_try_quit(milton);
         } break;
         case Action_NEW: {
+            // TODO Blocks UI thread
             if ( milton_prompt_and_save_default_canvas_as(milton) )
             {
                 milton_reset_canvas_and_set_default(milton);
                 input->flags |= MiltonInputFlags_FULL_REFRESH;
-                milton->flags |= MiltonStateFlags_DEFAULT_CANVAS;
             }
         } break;
         case Action_SAVE: {
             INVALID_CODE_PATH;
         } break;
         case Action_SAVE_AS: {
-            PATH_CHAR* name = platform_save_dialog(FileKind_MILTON_CANVAS);
-            if ( name ) {
-                milton_log("Saving to %s\n", name);
-                milton_set_canvas_file(milton, name);
-                input->flags |= MiltonInputFlags_SAVE_FILE;
-
-                // TODO BUG: File hasn't been saved yet. If we crash before then, it will be lost.
-                b32 del = platform_delete_file_at_config(TO_PATH_STR("MiltonPersist.mlt"),
-                        DeleteErrorTolerance_OK_NOT_EXIST);
-                if ( del == false ) {
-                    platform_dialog("Could not delete default canvas. Contents will be still there when you create a new canvas.",
-                            "Info");
-                }
-            }
+            // TODO Blocks UI thread
+            save_as_dialog(milton);
         } break;
         case Action_OPEN: {
+            // TODO Blocks UI thread
             if ( milton_prompt_and_save_default_canvas_as(milton) )
             {
                 PATH_CHAR* fname = platform_open_dialog(FileKind_MILTON_CANVAS);

@@ -363,6 +363,7 @@ sdl_event_loop(Milton* milton, PlatformState* platform)
                     pointer_up = true;
                     milton_input.flags |= MiltonInputFlags_CLICKUP;
                     milton_input.flags |= MiltonInputFlags_END_STROKE;
+                    milton->canvas->has_unsaved_changes = true;
                 }
             } break;
             case SDL_MOUSEMOTION: {

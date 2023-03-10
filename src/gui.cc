@@ -444,7 +444,6 @@ gui_menu(MiltonInput* input, PlatformState* platform, Milton* milton, b32& show_
                         // New Canvas
                         milton_reset_canvas_and_set_default(milton);
                         input->flags |= MiltonInputFlags_FULL_REFRESH;
-                        milton->flags |= MiltonStateFlags_DEFAULT_CANVAS;
                     }
                 }
                 if ( ImGui::MenuItem(loc(TXT_open_milton_canvas)) ) {
@@ -458,19 +457,7 @@ gui_menu(MiltonInput* input, PlatformState* platform, Milton* milton, b32& show_
                     }
                 }
                 if ( ImGui::MenuItem(loc(TXT_save_milton_canvas_as_DOTS)) ) {
-                    // NOTE(possible refactor): There is a copy of this at milton.c end of file
-                    PATH_CHAR* name = platform_save_dialog(FileKind_MILTON_CANVAS);
-                    if ( name ) {
-                        milton_log("Saving to %s\n", name);
-                        milton_set_canvas_file(milton, name);
-                        input->flags |= MiltonInputFlags_SAVE_FILE;
-                        b32 del = platform_delete_file_at_config(TO_PATH_STR("MiltonPersist.mlt"),
-                                                                 DeleteErrorTolerance_OK_NOT_EXIST);
-                        if ( del == false ) {
-                            platform_dialog(loc(TXT_could_not_delete_default_canvas),
-                                            "Info");
-                        }
-                    }
+                    save_as_dialog(milton);
                 }
                 if ( ImGui::MenuItem(loc(TXT_export_to_image_DOTS)) ) {
                     milton_enter_mode(milton, MiltonMode::EXPORTING);
@@ -776,6 +763,20 @@ milton_imgui_tick(MiltonInput* input, PlatformState* platform,  Milton* milton, 
                 if (ImGui::SliderInt(loc(TXT_peek_out_increment_percent), &peek_out_percent, 0, 100)) {
                     milton->settings->peek_out_increment = (peek_out_percent / 100.0f) * peek_range;
                 }
+
+                ImGui::Separator();
+
+                char* auto_switch_options_text[] = {
+                    loc(TXT_always_switch),
+                    loc(TXT_never_switch),
+                    loc(TXT_ask),
+                };
+
+                ImGui::Text("When saving, you can open the new file\n"
+                        "immediately or keep editing the old one:");
+                ImGui::Combo("", (int*)&milton->settings->switch_save_target,
+                        auto_switch_options_text, array_count(auto_switch_options_text));
+
 
                 ImGui::Separator();
 

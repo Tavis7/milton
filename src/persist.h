@@ -20,9 +20,15 @@ struct MiltonPersist
     sz bytes_to_last_block;
 };
 
+struct milton_save_return {
+    i64 bytes_written;
+    b32 error;
+};
+
 PATH_CHAR* milton_get_last_canvas_fname();
 
 void milton_load(Milton* milton);
+milton_save_return milton_save_as(Milton* milton, PATH_CHAR* new_file);
 u64 milton_save(Milton* milton);
 b32 milton_prompt_and_save_default_canvas_as(Milton* milton);
 

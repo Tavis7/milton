@@ -89,6 +89,8 @@ struct CanvasState
     DArray<Stroke>         stroke_graveyard;
 
     i32         stroke_id_count;
+
+    b32         has_unsaved_changes;
 };
 
 enum PrimitiveFSM
@@ -98,11 +100,19 @@ enum PrimitiveFSM
     Primitive_DONE,
 };
 
+enum SwitchSaveTarget
+{
+    SwitchSaveTarget_ON_SAVE,
+    SwitchSaveTarget_OPEN_ONLY,
+    SwitchSaveTarget_ASK,
+};
+
 #pragma pack(push, 1)
 struct MiltonSettings
 {
     v3f background_color;
     float peek_out_increment;
+    SwitchSaveTarget switch_save_target;
 
     MiltonBindings bindings;
 };

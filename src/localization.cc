@@ -119,6 +119,10 @@ init_localization()
         EN(TXT_grid_columns, "Grid Columns");
         EN(TXT_grid_rows, "Grid Rows");
 
+        EN(TXT_always_switch, "Always switch");
+        EN(TXT_never_switch, "Never switch");
+        EN(TXT_ask, "Ask");
+
         EN(TXT_Action_DECREASE_BRUSH_SIZE, "Decrease brush size");
         EN(TXT_Action_INCREASE_BRUSH_SIZE, "Increase brush size");
         EN(TXT_Action_ZOOM_IN, "Zoom in");
