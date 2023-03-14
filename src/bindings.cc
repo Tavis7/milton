@@ -129,9 +129,7 @@ void save_as_dialog(Milton* milton)
                     }
                 }
             }
-        }
-        else
-        {
+        } else {
             char msg[1024];
             snprintf(msg, sizeof(msg),
                     "Could not save to %s",

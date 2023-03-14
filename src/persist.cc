@@ -966,7 +966,7 @@ platform_settings_load(PlatformSettings* prefs)
         fclose(fd);
     }
     else {
-        milton_log("Could not open file for writing prefs\n");
+        milton_log("Could not open file for reading prefs\n");
     }
 
     return loaded;
