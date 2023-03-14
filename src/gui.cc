@@ -749,19 +749,19 @@ milton_imgui_tick(MiltonInput* input, PlatformState* platform,  Milton* milton, 
 
                 ImGui::Text(loc(TXT_default_background_color));
 
-                v3f* bg = &milton->settings->background_color;
+                v3f* bg = &milton->settings->misc.background_color;
                 if (ImGui::ColorEdit3(loc(TXT_color), bg->d)) {
                     // TODO: Let milton know that we need to save the settings
                 }
 
                 if ( ImGui::Button(loc(TXT_set_current_background_color_as_default)) ) {
-                    milton->settings->background_color = milton->view->background_color;
+                    milton->settings->misc.background_color = milton->view->background_color;
                 }
 
                 const float peek_range = 20;
-                int peek_out_percent = 100 * (milton->settings->peek_out_increment / peek_range);
+                int peek_out_percent = 100 * (milton->settings->misc.peek_out_increment / peek_range);
                 if (ImGui::SliderInt(loc(TXT_peek_out_increment_percent), &peek_out_percent, 0, 100)) {
-                    milton->settings->peek_out_increment = (peek_out_percent / 100.0f) * peek_range;
+                    milton->settings->misc.peek_out_increment = (peek_out_percent / 100.0f) * peek_range;
                 }
 
                 ImGui::Separator();
@@ -774,7 +774,7 @@ milton_imgui_tick(MiltonInput* input, PlatformState* platform,  Milton* milton, 
 
                 ImGui::Text("When saving, you can open the new file\n"
                         "immediately or keep editing the old one:");
-                ImGui::Combo("", (int*)&milton->settings->switch_save_target,
+                ImGui::Combo("", (int*)&milton->settings->misc.switch_save_target,
                         auto_switch_options_text, array_count(auto_switch_options_text));
 
 

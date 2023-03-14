@@ -100,23 +100,44 @@ enum PrimitiveFSM
     Primitive_DONE,
 };
 
-enum SwitchSaveTarget
+enum SwitchSaveTarget : u8
 {
     SwitchSaveTarget_ON_SAVE,
     SwitchSaveTarget_OPEN_ONLY,
     SwitchSaveTarget_ASK,
 };
 
+enum SettingsFormat : u16
+{
+    SettingsFormat_LEGACY = 0,
+    SettingsFormat_V1     = 1,
+};
+
 #pragma pack(push, 1)
-struct MiltonSettings
+struct MiltonSettings_Legacy
 {
     v3f background_color;
     float peek_out_increment;
-    SwitchSaveTarget switch_save_target;
 
     MiltonBindings bindings;
 };
 #pragma pack(pop)
+
+struct MiltonSettings
+{
+    SettingsFormat settings_format_version;
+    b32 settings_unknown_format;
+#pragma pack(push, 1)
+    struct
+    {
+        v3f background_color;
+        float peek_out_increment;
+        SwitchSaveTarget switch_save_target;
+    } misc;
+#pragma pack(pop)
+
+    MiltonBindings bindings;
+};
 
 struct Eyedropper
 {

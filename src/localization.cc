@@ -56,6 +56,8 @@ init_localization()
         EN(TXT_export_selection_to_image_DOTS, "Export selection to image...");
         EN(TXT_MSG_memerr_did_not_write, "Did not write file. Not enough memory available for operation.");
         EN(TXT_MSG_default_canvas_clear_prompt, "The default canvas will be cleared. Save it?");
+        EN(TXT_settings_overwrite_prompt, "Existing settings could not be loaded. Overwrite?");
+        EN(TXT_settings_overwrite_title, "Overwrite settings?");
         EN(TXT_error, "Error");
         EN(TXT_cancel, "Cancel");
         EN(TXT_view, "View");

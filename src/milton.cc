@@ -613,8 +613,8 @@ milton_get_brush_alpha(Milton const* milton)
 void
 settings_init(MiltonSettings* s)
 {
-    s->background_color = v3f{1,1,1};
-    s->peek_out_increment = DEFAULT_PEEK_OUT_INCREMENT_LOG;
+    s->misc.background_color = v3f{1,1,1};
+    s->misc.peek_out_increment = DEFAULT_PEEK_OUT_INCREMENT_LOG;
 }
 
 int milton_save_thread(void* state_);  // forward
@@ -678,7 +678,7 @@ milton_init(Milton* milton, i32 width, i32 height, f32 ui_scale, PATH_CHAR* file
 
     milton->view = arena_alloc_elem(&milton->root_arena, CanvasView);
 
-    init_view(milton->view, milton->settings->background_color, width, height);
+    init_view(milton->view, milton->settings->misc.background_color, width, height);
     if (init_graphics) { gpu_init(milton->renderer, milton->view, &milton->gui->picker); }
 
     if (init_graphics) { gpu_update_background(milton->renderer, milton->view->background_color); }
@@ -837,10 +837,10 @@ milton_reset_canvas_and_set_default(Milton* milton)
 
     // New View
     init_view(milton->view,
-        milton->settings->background_color,
+        milton->settings->misc.background_color,
         milton->view->screen_size.x,
         milton->view->screen_size.y);
-    milton->view->background_color = milton->settings->background_color;
+    milton->view->background_color = milton->settings->misc.background_color;
     gpu_update_background(milton->renderer, milton->view->background_color);
 
     // Reset color buttons
@@ -1151,14 +1151,14 @@ static i64
 peek_out_target_scale(Milton* milton)
 {
     double log_scale = log2(1 + milton->view->scale) / log2(SCALE_FACTOR);
-    i64 target = min(pow(SCALE_FACTOR, log_scale + milton->settings->peek_out_increment), VIEW_SCALE_LIMIT);
+    i64 target = min(pow(SCALE_FACTOR, log_scale + milton->settings->misc.peek_out_increment), VIEW_SCALE_LIMIT);
     return target;
 }
 
 static u64
 peek_out_duration_ms(Milton* milton)
 {
-    u64 duration = milton->settings->peek_out_increment * PEEK_OUT_SPEED;
+    u64 duration = milton->settings->misc.peek_out_increment * PEEK_OUT_SPEED;
     return duration;
 }
 

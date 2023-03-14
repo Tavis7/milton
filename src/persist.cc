@@ -149,7 +149,7 @@ milton_load(Milton* milton)
             milton->view->size = sizeof(CanvasView);
         }
         else if ( milton_binary_version >= 4 && milton_binary_version < 9) {
-            init_view(milton->view, milton->settings->background_color, milton->view->screen_size.x, milton->view->screen_size.y); // defaults
+            init_view(milton->view, milton->settings->misc.background_color, milton->view->screen_size.x, milton->view->screen_size.y); // defaults
 
             size_t bytes_offset = offsetof(CanvasView, screen_size);
 
@@ -989,25 +989,81 @@ platform_settings_save(PlatformSettings* prefs)
     }
 }
 
+#define USER_SETTINGS_FILENAME "settings.bin"
+#define USER_SETTINGS_LEGACY_FILENAME "user_settings.bin"
+
 b32
 milton_settings_load(MiltonSettings* settings)
 {
-    PATH_CHAR settings_fname[MAX_PATH] = TO_PATH_STR("user_settings.bin"); {
+    PATH_CHAR settings_fname[MAX_PATH] = TO_PATH_STR(USER_SETTINGS_FILENAME); {
         platform_fname_at_config(settings_fname, MAX_PATH);
     }
 
     b32 ok = false;
     auto* fd = platform_fopen(settings_fname, TO_PATH_STR("rb"));
     if ( fd ) {
-        u16 struct_size = 0;
-        if ( fread(&struct_size, sizeof(u16), 1, fd) ) {
-            if (struct_size <= sizeof(*settings)) {
-                if ( fread(settings, sizeof(*settings), 1, fd) ) {
-                    ok = true;
+        b32 error = false;
+        if ( fread(&settings->settings_format_version,
+                    sizeof(settings->settings_format_version), 1, fd) ) {
+            if ( settings->settings_format_version == SettingsFormat_V1 ) {
+                u16 sz = 0;
+                // Miscelaneous settings
+                if ( !error && !fread(&sz, sizeof(u16), 1, fd) ) {
+                    error = true;
+                }
+                if ( sz != sizeof(settings->misc) ) {
+                    error = true;
+                }
+                if ( !error && !fread(&settings->misc, sz, 1, fd) ) {
+                    error = true;
+                }
+
+                // Key bindings
+                if ( !error && !fread(&sz, sizeof(u16), 1, fd) ) {
+                    error = true;
+                }
+                if ( !error && sz != sizeof(settings->bindings) ) {
+                    error = true;
+                }
+                if ( !error && !fread(&settings->bindings, sz, 1, fd) ) {
+                    error = true;
+                }
+                ok = !error;
+            } else {
+                milton_log("Warning: Unknown settings file version: %d. Ignoring.\n",
+                        settings->settings_format_version);
+                settings->settings_unknown_format = true;
+            }
+        }
+    } else {
+        milton_log("File '%s' not found. Attempting to read legacy settings file '%s'.\n",
+                USER_SETTINGS_FILENAME, USER_SETTINGS_LEGACY_FILENAME);
+        PATH_CHAR legacy_settings_fname[MAX_PATH] = TO_PATH_STR(USER_SETTINGS_LEGACY_FILENAME); {
+            platform_fname_at_config(legacy_settings_fname, MAX_PATH);
+        }
+        MiltonSettings_Legacy legacySettings = {};
+
+        auto* fd = platform_fopen(legacy_settings_fname, TO_PATH_STR("rb"));
+        if ( fd ) {
+
+            u16 struct_size = 0;
+            if ( fread(&struct_size, sizeof(u16), 1, fd) ) {
+                if (struct_size <= sizeof(legacySettings)) {
+                    if ( fread(&legacySettings, sizeof(legacySettings), 1, fd) ) {
+                        settings->settings_format_version = SettingsFormat_LEGACY;
+                        settings->misc.background_color = legacySettings.background_color;
+                        settings->misc.peek_out_increment = legacySettings.peek_out_increment;
+
+                        // TODO compatibility: Convert binding format
+                        // TODO compatibility: Add new default bindings
+                        settings->bindings = legacySettings.bindings;
+                        ok = true;
+                    }
                 }
             }
         }
     }
+
     if ( !ok ) {
         milton_log("Warning: Failed to read settings file\n");
     }
@@ -1017,19 +1073,62 @@ milton_settings_load(MiltonSettings* settings)
 
 void milton_settings_save(MiltonSettings* settings)
 {
-    PATH_CHAR settings_fname[MAX_PATH] = TO_PATH_STR("user_settings.bin"); {
+    PATH_CHAR settings_fname[MAX_PATH] = TO_PATH_STR(USER_SETTINGS_FILENAME); {
         platform_fname_at_config(settings_fname, MAX_PATH);
     }
 
     b32 ok = false;
-    auto* fd = platform_fopen(settings_fname, TO_PATH_STR("wb"));
-    if ( fd ) {
-        mlt_assert( sizeof(*settings) < 1<<16 );
-        u16 sz = sizeof(*settings);
-        if ( fwrite(&sz, sizeof(sz), 1, fd) ) {
-            if ( fwrite(settings, sizeof(*settings), 1, fd) ) {
-                ok = true;
+    b32 error = false;
+    b32 allow_save = true;
+    SettingsFormat format_version = SettingsFormat_V1;
+    if ( settings->settings_unknown_format ||
+            (format_version < settings->settings_format_version) )
+    {
+        allow_save = platform_dialog_yesno(loc(TXT_settings_overwrite_prompt),
+                    loc(TXT_settings_overwrite_title));
+    }
+
+    if ( allow_save )
+    {
+        auto* fd = platform_fopen(settings_fname, TO_PATH_STR("wb"));
+        if ( fd ) {
+            if ( format_version > settings->settings_format_version ) {
+                milton_log("Upgrading settings format from version %d to %d\n",
+                        settings->settings_format_version, format_version);
+            } else if ( format_version < settings->settings_format_version ) {
+                milton_log("Warning: Saving settings to format older than loaded version (%d -> %d)\n",
+                        settings->settings_format_version, format_version);
             }
+
+            // Settings format version
+            mlt_assert(sizeof(format_version) == sizeof(u16));
+            if ( !fwrite(&format_version, sizeof(u16), 1, fd) ) {
+                error = true;
+            }
+
+            // Miscelaneous settings
+            mlt_assert( sizeof(settings->misc) < 1<<16 );
+            u16 sz = sizeof(settings->misc);
+
+            if ( !fwrite(&sz, sizeof(sz), 1, fd) ) {
+                error = true;
+            }
+            if ( !fwrite(&settings->misc, sizeof(settings->misc), 1, fd) ) {
+                error = true;
+            }
+
+            // Key bindings
+            mlt_assert( sizeof(settings->bindings) < 1<<16 );
+            sz = sizeof(settings->bindings);
+
+            if ( !fwrite(&sz, sizeof(sz), 1, fd) ) {
+                error = true;
+            }
+            if ( !fwrite(&settings->bindings, sizeof(settings->bindings), 1, fd) ) {
+                error = true;
+            }
+
+            ok = !error;
         }
     }
     if ( !ok ) {

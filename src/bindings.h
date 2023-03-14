@@ -3,65 +3,66 @@
 
 #pragma once
 
-enum BindableAction
+enum BindableAction : u32
 {
-    Action_NONE,
+    // Do not reuse IDs
+    Action_NONE = 0,
 
-    Action_FIRST,
+    Action_FIRST = 1,
 
-    Action_DECREASE_BRUSH_SIZE = Action_FIRST,
-    Action_INCREASE_BRUSH_SIZE,
-    Action_ZOOM_IN,
-    Action_ZOOM_OUT,
-    Action_REDO,
-    Action_UNDO,
-    Action_EXPORT,
-    Action_QUIT,
-    Action_NEW,
-    Action_SAVE,
-    Action_SAVE_AS,
-    Action_OPEN,
-    Action_TOGGLE_MENU,
-    Action_TOGGLE_GUI,
-    Action_MODE_ERASER,
-    Action_MODE_PEN,
-    Action_MODE_EYEDROPPER,
-    Action_MODE_PRIMITIVE_LINE,
-    Action_MODE_PRIMITIVE_RECTANGLE,
-    Action_MODE_PRIMITIVE_GRID,
-    Action_SET_BRUSH_ALPHA_10,
-    Action_SET_BRUSH_ALPHA_20,
-    Action_SET_BRUSH_ALPHA_30,
-    Action_SET_BRUSH_ALPHA_40,
-    Action_SET_BRUSH_ALPHA_50,
-    Action_SET_BRUSH_ALPHA_60,
-    Action_SET_BRUSH_ALPHA_70,
-    Action_SET_BRUSH_ALPHA_80,
-    Action_SET_BRUSH_ALPHA_90,
-    Action_SET_BRUSH_ALPHA_100,
-    Action_HELP,
-    Action_PEEK_OUT,
-    Action_DRAG_BRUSH_SIZE,
-    Action_DRAG_ZOOM,
-    Action_TRANSFORM,
+    Action_DECREASE_BRUSH_SIZE      = Action_FIRST,
+    Action_INCREASE_BRUSH_SIZE      = 2,
+    Action_ZOOM_IN                  = 3,
+    Action_ZOOM_OUT                 = 4,
+    Action_REDO                     = 5,
+    Action_UNDO                     = 6,
+    Action_EXPORT                   = 7,
+    Action_QUIT                     = 8,
+    Action_NEW                      = 9,
+    Action_SAVE                     = 10,
+    Action_SAVE_AS                  = 11,
+    Action_OPEN                     = 12,
+    Action_TOGGLE_MENU              = 13,
+    Action_TOGGLE_GUI               = 14,
+    Action_MODE_ERASER              = 15,
+    Action_MODE_PEN                 = 16,
+    Action_MODE_EYEDROPPER          = 17,
+    Action_MODE_PRIMITIVE_LINE      = 18,
+    Action_MODE_PRIMITIVE_RECTANGLE = 19,
+    Action_MODE_PRIMITIVE_GRID      = 20,
+    Action_SET_BRUSH_ALPHA_10       = 21,
+    Action_SET_BRUSH_ALPHA_20       = 22,
+    Action_SET_BRUSH_ALPHA_30       = 23,
+    Action_SET_BRUSH_ALPHA_40       = 24,
+    Action_SET_BRUSH_ALPHA_50       = 25,
+    Action_SET_BRUSH_ALPHA_60       = 26,
+    Action_SET_BRUSH_ALPHA_70       = 27,
+    Action_SET_BRUSH_ALPHA_80       = 28,
+    Action_SET_BRUSH_ALPHA_90       = 29,
+    Action_SET_BRUSH_ALPHA_100      = 30,
+    Action_HELP                     = 31,
+    Action_PEEK_OUT                 = 32,
+    Action_DRAG_BRUSH_SIZE          = 33,
+    Action_DRAG_ZOOM                = 34,
+    Action_TRANSFORM                = 35,
 
-    #if MILTON_ENABLE_PROFILING
+    #if MILTON_ENABLE_PROFILING && 0
         // Debug bindings
-        Action_TOGGLE_DEBUG_WINDOW,
+        Action_TOGGLE_DEBUG_WINDOW = 41,
     #endif
 
     Action_COUNT,
 
     // Press-and-release actions.
-    ActionRelease_PEEK_OUT,
-    ActionRelease_DRAG_BRUSH_SIZE,
-    ActionRelease_DRAG_ZOOM,
-    ActionRelease_TRANSFORM,
+    ActionRelease_PEEK_OUT        = 37,
+    ActionRelease_DRAG_BRUSH_SIZE = 38,
+    ActionRelease_DRAG_ZOOM       = 39,
+    ActionRelease_TRANSFORM       = 40,
 
     Action_COUNT_WITH_RELEASE,
 };
 
-enum ModifierFlags
+enum ModifierFlags : u32
 {
     Modifier_NONE = 0,
 
@@ -72,10 +73,13 @@ enum ModifierFlags
     Modifier_SHIFT = 1<<4,
 };
 
+#pragma pack(push, 1)
 struct Binding
 {
     u8 accepts_repeats;
     u8 on_release;
+
+    u8 _padding1[2];
 
     ModifierFlags modifiers;
 
@@ -117,9 +121,13 @@ struct Binding
         KP_9 = '9',
     };
 
+    u8 _padding2[3];
+
     BindableAction action;
 };
+#pragma pack(pop)
 
+#pragma pack(push, 1)
 struct MiltonBindings
 {
     // NOTE: On key-down, we have to loop over this array to find a matching
@@ -129,4 +137,5 @@ struct MiltonBindings
     // we can add a map here.
     Binding bindings[Action_COUNT_WITH_RELEASE];
 };
+#pragma pack(pop)
 

@@ -114,8 +114,8 @@ void save_as_dialog(Milton* milton)
                 was_tmp_file = true;
             }
 
-            if ( (milton->settings->switch_save_target == SwitchSaveTarget_ON_SAVE) ||
-                    ((milton->settings->switch_save_target == SwitchSaveTarget_ASK) &&
+            if ( (milton->settings->misc.switch_save_target == SwitchSaveTarget_ON_SAVE) ||
+                    ((milton->settings->misc.switch_save_target == SwitchSaveTarget_ASK) &&
                      platform_dialog_yesno(msg, "Switch to new file?")) ) {
                 milton_set_canvas_file(milton, name);
 

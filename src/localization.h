@@ -33,14 +33,13 @@ enum Texts
     TXT_export_selection_to_image_DOTS,
     TXT_MSG_memerr_did_not_write,
     TXT_MSG_default_canvas_clear_prompt,
+    TXT_settings_overwrite_prompt,
+    TXT_settings_overwrite_title,
     TXT_error,
     TXT_cancel,
     TXT_view,
     TXT_toggle_gui_visibility,
     TXT_layers,
-
-    // ==== Translation to spanish completed until this point
-
     TXT_settings,
     TXT_switch_to_primitive_line,
     TXT_switch_to_primitive_rectangle,
