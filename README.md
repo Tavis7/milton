@@ -66,13 +66,6 @@ Linux and macOS
 As of 2018-10-24, linux and mac are not officially supported. I (Sergio) would like to support them again but my efforts are currently going into producing a new release for Windows. You can try and compile with the included scripts, but things will likely not work!
 
 
-Currently (around March 2023), a linux executable can be built by running `./build-lin.sh -DCMAKE_BUILD_TYPE=Debug`.
-
-If successful, you should have an executable at `build/Milton` that runs.
-
-See comments in the build script for more information.
-
-
 Versioning scheme
 =================
 
