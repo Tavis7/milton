@@ -788,14 +788,14 @@ milton_prompt_and_save_default_canvas_as(Milton* milton)
         milton_set_canvas_file(milton, name);
 
         milton_save(milton);
+    }
 
-        if ( !(milton->flags & MiltonStateFlags_LAST_SAVE_FAILED) )
-        {
-            b32 del = platform_delete_file_at_config(TO_PATH_STR("MiltonPersist.mlt"), DeleteErrorTolerance_OK_NOT_EXIST);
-            if ( del == false ) {
-                platform_dialog("Could not delete the default canvas. The current drawing may still be there when you try to create a new one.",
-                        "Info");
-            }
+    if ( !(milton->flags & MiltonStateFlags_LAST_SAVE_FAILED) )
+    {
+        b32 del = platform_delete_file_at_config(TO_PATH_STR("MiltonPersist.mlt"), DeleteErrorTolerance_OK_NOT_EXIST);
+        if ( del == false ) {
+            platform_dialog("Could not delete the default canvas. The current drawing may still be there when you try to create a new one.",
+                    "Info");
         }
     }
 
