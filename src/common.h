@@ -76,12 +76,15 @@ typedef i32         b32;
 
 #define INVALID_CODE_PATH mlt_assert(!"Invalid code path")
 
-#if defined(MILTON_DEBUG)
+#if MILTON_DEBUG
     #if defined(_WIN32)
         #define BREAKHERE __debugbreak()
     #endif
     #if defined(__MACH__)
         #define BREAKHERE asm ("int $3")
+    #endif
+    #if defined ( __linux__ )
+        #define BREAKHERE raise(SIGTRAP)
     #endif
 #endif
 

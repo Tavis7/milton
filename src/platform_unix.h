@@ -24,8 +24,6 @@
     #include <time.h>
     #include <ctype.h>
 
-    #define BREAKHERE raise(SIGTRAP)
-
 #elif defined(__MACH__)
     #include <sys/mman.h>
     #include <unistd.h> // getpid
