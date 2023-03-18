@@ -190,6 +190,85 @@ platform_dialog_yesnocancel(char* info, char* title)
     return YesNoCancelAnswer::CANCEL_;
 }
 
+#define XDG_DEFAULT_DATA_HOME ".local/share"
+
+#define LINUX_MILTON_CONFIG_DIR_NAME "milton"
+
+PATH_CHAR*
+linux_get_milton_data_path(PATH_CHAR* path, size_t len)
+{
+    // Writes the data path to 'path' and returns a pointer to the null
+    // terminator. Usually either $XDG_DATA_DIR/milton or
+    // $HOME/.local/share/milton.
+    //
+    // https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
+
+    // The spec requires that we use $HOME/.local/share when $XDG_DATA_DIR is
+    // unset, but older versions of Milton used $HOME/.milton as a fallback
+    // instead.
+    //
+    // For backwards compatibility, we look for $HOME/.milton if $XDG_DATA_DIR
+    // is unset and $HOME/.local/share hasn't been created yet.
+
+    char *home = getenv("HOME");
+    char *data_home = getenv("XDG_DATA_HOME");
+
+    size_t home_length = 0;
+    size_t data_home_length = 0;
+    if (home) {
+        home_length = strlen(home);
+    }
+    if (data_home) {
+        data_home_length = strlen(data_home);
+    }
+    size_t copy_length = 1; // Null terminator
+
+    char *p = path;
+
+    if ( (!data_home) || (data_home[0] != '/') ) {
+        copy_length += home_length;
+        copy_length += string_count("/" XDG_DEFAULT_DATA_HOME);
+
+        if ( copy_length < len ) {
+            p = stpcpy(p, home);
+            p = stpcpy(p, "/" XDG_DEFAULT_DATA_HOME);
+        }
+    } else {
+        copy_length += data_home_length;
+
+        if ( copy_length < len ) {
+            p = stpcpy(p, data_home);
+        }
+    }
+
+    copy_length += string_count("/" LINUX_MILTON_CONFIG_DIR_NAME);
+    if ( copy_length < len ) {
+        p = stpcpy(p, "/" LINUX_MILTON_CONFIG_DIR_NAME);
+
+        if ( !data_home && (access(path, F_OK) != 0) ) {
+            char legacy_path[len];
+            char *lp = legacy_path;
+            copy_length = 1; // Null terminator
+            copy_length += home_length;
+            copy_length += string_count("/." LINUX_MILTON_CONFIG_DIR_NAME);
+            if ( copy_length < len ) {
+                lp = stpcpy(lp, home);
+                lp = stpcpy(lp, "/." LINUX_MILTON_CONFIG_DIR_NAME);
+                if ( (access(legacy_path, F_OK) == 0) ) {
+                    strcpy(path, legacy_path);
+                    p = path + (lp - legacy_path);
+                }
+            }
+        }
+    } else {
+        // NOTE: Using printf() because milton_log() can recurse infinitely here.
+        printf("Configuration path is too long: %d bytes", copy_length);
+        path[0] = 0;
+        p = path;
+    }
+    return p;
+}
+
 void
 platform_fname_at_config(PATH_CHAR* fname, size_t len)
 {
@@ -199,23 +278,27 @@ platform_fname_at_config(PATH_CHAR* fname, size_t len)
 
     if ( string_copy ) {
         strncpy(string_copy, fname, len);
-        char *folder;
-        char *home = getenv("XDG_DATA_HOME");
-        if ( !home ) {
-            home = getenv("HOME");
-            folder = ".milton";
-        } else {
-            folder = "milton";
-        }
-        size_t final_length = strlen(home) + strlen(folder) + copy_length + 3; // +2 for the separators /, +1 for extra null terminator
-        if( final_length > len ) {
-            // building a path will lead to overflow. return string_copy as it can be used as a relative path
-            strncpy(fname, string_copy, len);
-        } else {
-            snprintf(fname, len, "%s/%s", home, folder);
+
+        char *tail = linux_get_milton_data_path(fname, len);
+
+        size_t final_length = tail - fname + copy_length + string_count("/") + 1;
+
+        if( (final_length < len) && (fname[0] != 0) ) {
             mkdir(fname, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
-            strcat(fname, "/");
-            strcat(fname, string_copy);
+            tail = stpcpy(tail, "/");
+            tail = stpcpy(tail, string_copy);
+#if MILTON_DEBUG
+            mlt_assert(final_length == (strlen(fname) + 1));
+#endif
+        } else {
+            // Either we didn't get a configuration path or appending the
+            // filename would make it too long, so return the filename only.
+
+            // NOTE: Using printf() because milton_log() can recurse infinitely here.
+            printf("Warning: Can't get config path for '%s', treating it as a relative path.",
+                    string_copy);
+
+            strncpy(fname, string_copy, len);
         }
 
         mlt_free(string_copy, "Strings");

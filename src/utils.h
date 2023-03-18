@@ -14,6 +14,13 @@
 #define array_count(arr) (sizeof((arr)) / sizeof((arr)[0]))
 #endif
 
+// Length of string literal excluding null terminator
+#ifdef string_count
+#error "array_count is already defined"
+#else
+#define string_count(str) (sizeof((str)) / sizeof((str)[0]) - 1)
+#endif
+
 #ifndef min
 #define min(a, b) (((a) < (b)) ? a : b)
 #endif
