@@ -10,6 +10,10 @@ add_executable(shadergen
   src/shadergen.cc
 )
 
+add_executable(tests EXCLUDE_FROM_ALL
+  src/unity_tests.cc
+)
+
 set(SDL2DIR ${CMAKE_CURRENT_SOURCE_DIR}/third_party/SDL2-2.0.8)
 
 FILE (GLOB ShaderSources src/*.glsl third_party/*.glsl)
@@ -20,6 +24,12 @@ add_executable(Milton WIN32 MACOSX_BUNDLE
 )
 
 target_include_directories(Milton PRIVATE
+  src
+  third_party
+  third_party/imgui
+)
+
+target_include_directories(tests PRIVATE
   src
   third_party
   third_party/imgui
@@ -73,6 +83,8 @@ if(UNIX)
     ${UnixCFlags})
   target_compile_options(Milton PRIVATE
     ${UnixCFlags})
+  target_compile_options(tests PRIVATE
+    ${UnixCFlags})
 endif()
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
@@ -106,7 +118,25 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     ${OPENGL_INCLUDE_DIR}
   )
 
+  target_include_directories(tests PRIVATE
+    ${GTK2_INCLUDE_DIRS}
+    ${X11_INCLUDE_DIR}
+    ${SDL2DIR}/build/linux64/include/SDL2
+    ${OPENGL_INCLUDE_DIR}
+  )
+
   target_link_libraries(Milton
+    ${GTK2_LIBRARIES}
+    ${X11_LIBRARIES}
+    ${OPENGL_LIBRARIES}
+    ${XINPUT_LIBRARY}
+    ${SDL2_MAIN}
+    ${SDL2_LIB}
+    ${CMAKE_THREAD_LIBS_INIT}
+    ${CMAKE_DL_LIBS}
+    )
+
+  target_link_libraries(tests
     ${GTK2_LIBRARIES}
     ${X11_LIBRARIES}
     ${OPENGL_LIBRARIES}
@@ -120,6 +150,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 else()
   add_subdirectory(${SDL2DIR})
   target_link_libraries(Milton SDL2-static)
+  target_link_libraries(tests SDL2-static)
 endif()
 
 if(APPLE)
@@ -131,6 +162,10 @@ endif()
 
 if(WIN32 OR APPLE)
   target_include_directories(Milton PRIVATE
+    ${SDL2DIR}/include
+  )
+
+  target_include_directories(tests PRIVATE
     ${SDL2DIR}/include
   )
 endif()

@@ -143,15 +143,3 @@ platform_titlebar_height(PlatformState* p)
 {
     return 20; // TODO: implement on mac and linux
 }
-
-int
-main(int argc, char** argv)
-{
-    char* file_to_open = NULL;
-    if ( argc == 2 ) {
-        file_to_open = argv[1];
-    }
-    milton_main(false, file_to_open);
-}
-
-

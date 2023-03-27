@@ -6,6 +6,10 @@
 # `-DCMAKE_BUILD_TYPE=Debug`
 # `-DCMAKE_BUILD_TYPE=Release`
 # `-DCMAKE_CXX_FLAGS="-Wno-deprecated-declarations"`
+#
+# To reset cached CMake variables, `cmake --build build --target clean`
+#
+# To build tests, run `make tests` in `build/`
 
 MYDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $MYDIR
@@ -38,7 +42,7 @@ pushd third_party/SDL2-2.0.8
 popd
 
 mkdir -p build
-cd build
-
-cmake "$@" .. || exit 1
-make -j || exit 1
+pushd build
+    cmake "$@" .. || exit 1
+    make -j || exit 1
+popd
