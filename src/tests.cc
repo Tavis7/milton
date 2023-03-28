@@ -13,15 +13,19 @@
     COMPARE_BYTES_COUNT(ptrA, ptrB, 1)
 
 #define EXPECT_TRUE(expr) \
-    if (!(expr)) { \
-        failed_test(#expr); \
-    }
+    record_test_result(#expr, (!(expr)))
 
+
+static u32 test_count = 0;
+static u32 failed_tests_count = 0;
 
 void
-failed_test(char* expr)
+record_test_result(char* expr, b32 failed)
 {
-    fprintf(stderr, "Failed expression: [ %s ]\n", expr);
+    test_count++;
+    failed_tests_count += failed ? 1 : 0;
+
+    fprintf(stderr, "%s: [ %s ]\n", failed?"FAILED":"SUCCEEDED", expr);
 }
 
 b32
@@ -69,6 +73,8 @@ test_save_load()
 
     EXPECT_TRUE( COMPARE_BYTES_COUNT(milton.brushes, loaded_milton.brushes, BrushEnum_COUNT) );
     EXPECT_TRUE( COMPARE_BYTES_COUNT(milton.brush_sizes, loaded_milton.brush_sizes, BrushEnum_COUNT) );
+
+    milton_log("%d/%d tests passed\n", test_count - failed_tests_count, test_count);
 }
 
 extern "C" int

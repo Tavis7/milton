@@ -643,7 +643,8 @@ milton_save_as(Milton* milton, PATH_CHAR* filename)
 
                         i32 size_of_brush = sizeof(Brush);
 
-                        u16 num_brushes = 3;  // Brush, eraser, primitive.
+                        // NOTE: Includes BrushEnum_NOBRUSH to keep tests.cc happy
+                        u16 num_brushes = BrushEnum_COUNT;
                         if ( !write_data(&num_brushes, sizeof(num_brushes), 1, fd) ||
                              !write_data(&size_of_brush, sizeof(i32), 1, fd) ||
                              !write_data(&milton->brushes, sizeof(Brush), num_brushes, fd) ||
