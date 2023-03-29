@@ -962,7 +962,7 @@ platform_settings_load(PlatformSettings* prefs)
             }
         }
         else {
-            milton_log("Error writing to prefs file...\n");
+            milton_log("Error reading from prefs file...\n");
         }
         fclose(fd);
     }
