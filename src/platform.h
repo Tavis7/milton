@@ -156,8 +156,7 @@ struct PlatformSettings
     i32 width;
     i32 height;
 
-    // Last opened file.
-    PATH_CHAR last_mlt_file[MAX_PATH];
+    PATH_CHAR unused[MAX_PATH];
 
     // GUI settings.
     i32 brush_window_left;
@@ -169,6 +168,9 @@ struct PlatformSettings
     i32 layer_window_top;
     i32 layer_window_width;
     i32 layer_window_height;
+
+    i32 recent_files_count;
+    PATH_CHAR recent_files[10][MAX_PATH];
 };
 
 // Defined in platform_windows.cc

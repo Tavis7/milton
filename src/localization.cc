@@ -32,6 +32,8 @@ init_localization()
     { // English
         EN(TXT_file, "File");
         EN(TXT_open_milton_canvas, "Open Milton Canvas");
+        EN(TXT_open_recent_milton_canvas, "Recent Files");
+        EN(TXT_clear_recent_files, "Clear");
         EN(TXT_export_to_image_DOTS, "Export to Image...");
         EN(TXT_quit, "Quit");
         EN(TXT_canvas, "Canvas");

@@ -494,10 +494,56 @@ void
 milton_set_canvas_file_(Milton* milton, PATH_CHAR* fname, b32 is_default)
 {
     milton_log("Set milton file: %s\n", fname);
+
     if ( is_default ) {
         milton->flags |= MiltonStateFlags_DEFAULT_CANVAS;
     } else {
         milton->flags &= ~MiltonStateFlags_DEFAULT_CANVAS;
+
+        PlatformSettings* prefs = milton->platform->prefs;
+
+        // Make sure we're counting an array and not a pointer
+        mlt_assert(array_count(prefs->recent_files) != 1);
+        // NOTE: May cause performance issues with lots of recent files
+        mlt_assert(array_count(prefs->recent_files) < 100);
+
+        int filenameIndex = 0;
+        for ( filenameIndex = 0; filenameIndex < prefs->recent_files_count; filenameIndex++ ) {
+            if ( strcmp(prefs->recent_files[filenameIndex], fname) == 0 ) {
+                break;
+            }
+        }
+
+        prefs->recent_files_count = MIN(array_count(prefs->recent_files),
+                MAX(filenameIndex + 1, prefs->recent_files_count));
+
+        PATH_CHAR* tmp_fname = fname;
+
+        // NOTE: If fname is pointing to something in prefs->recent_files[]
+        // we need to copy it.
+        PATH_CHAR tmp_buffer[array_count(prefs->recent_files[0])] = {};
+        if ( fname == prefs->recent_files[filenameIndex] )
+        {
+            // Copy fname because it points to prefs->recent_files[filenameIndex]
+            strncpy(tmp_buffer, fname,
+                    sizeof(tmp_buffer));
+            tmp_fname = tmp_buffer;
+            fname = 0;
+        }
+
+        // Move all the preceding filenames down one slot
+        for ( int i = filenameIndex; i > 0; i-- ) {
+            strncpy(prefs->recent_files[i], prefs->recent_files[i - 1],
+                    sizeof(prefs->recent_files[0]));
+        }
+
+        // Insert current filename at top
+        strncpy(prefs->recent_files[0], tmp_fname,
+                sizeof(prefs->recent_files[0]));
+
+        if ( !fname ) {
+            fname = prefs->recent_files[0];
+        }
     }
 
     u64 len = PATH_STRLEN(fname);

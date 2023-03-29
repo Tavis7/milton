@@ -12,6 +12,8 @@ enum Texts
 {
     TXT_file,
     TXT_open_milton_canvas,
+    TXT_open_recent_milton_canvas,
+    TXT_clear_recent_files,
     TXT_export_to_image_DOTS,
     TXT_quit,
     TXT_canvas,

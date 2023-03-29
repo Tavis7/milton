@@ -458,6 +458,28 @@ gui_menu(MiltonInput* input, PlatformState* platform, Milton* milton, b32& show_
                         }
                     }
                 }
+                if ( ImGui::BeginMenu(loc(TXT_open_recent_milton_canvas),
+                            /*bool enabled = */platform->prefs->recent_files_count) ) {
+                    for (int i = 0; i < platform->prefs->recent_files_count; i++)
+                    {
+                        if ( ImGui::MenuItem(platform->prefs->recent_files[i]) ) {
+                            if ( milton_prompt_and_save_default_canvas_as(milton) )
+                            {
+                                PATH_CHAR* fname = platform->prefs->recent_files[i];
+                                milton_set_canvas_file(milton, fname);
+                                input->flags |= MiltonInputFlags_OPEN_FILE;
+                            }
+                        }
+                    }
+
+                    ImGui::Separator();
+
+                    if ( ImGui::MenuItem(loc(TXT_clear_recent_files)) ) {
+                        // TODO Clear memory in platform->prefs->recent_files
+                        platform->prefs->recent_files_count = 0;
+                    }
+                    ImGui::EndMenu();
+                }
                 if ( ImGui::MenuItem(loc(TXT_save_milton_canvas_as_DOTS)) ) {
                     save_as_dialog(milton);
                 }
