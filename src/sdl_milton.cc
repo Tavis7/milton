@@ -527,6 +527,7 @@ milton_main(bool is_fullscreen, char* file_to_open)
     PlatformState platform = {};
 
     PlatformSettings prefs = {};
+    platform.prefs = &prefs;
 
     milton_log("Loading preferences...\n");
     if ( platform_settings_load(&prefs) ) {
@@ -687,8 +688,8 @@ milton_main(bool is_fullscreen, char* file_to_open)
 
     str_to_path_char(file_to_open, (PATH_CHAR*)file_to_open_, MAX_PATH*sizeof(*file_to_open_));
 
-    milton_init(milton, platform.width, platform.height, platform.ui_scale, (PATH_CHAR*)file_to_open_);
     milton->platform = &platform;
+    milton_init(milton, platform.width, platform.height, platform.ui_scale, (PATH_CHAR*)file_to_open_);
     milton->gui->menu_visible = true;
     if ( is_fullscreen ) {
         milton->gui->menu_visible = false;
@@ -897,7 +898,7 @@ milton_main(bool is_fullscreen, char* file_to_open)
             input_flags |= MiltonInputFlags_IMGUI_GRABBED_INPUT;
         }
 
-        milton_imgui_tick(&milton_input, &platform, milton, &prefs);
+        milton_imgui_tick(&milton_input, &platform, milton);
 
         // Clear pan delta if we are zooming
         if ( milton_input.scale != 0 ) {

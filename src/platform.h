@@ -41,6 +41,7 @@ enum LayoutType
 struct SDL_Cursor;
 
 struct PlatformSpecific;
+struct PlatformSettings;
 
 struct PlatformState
 {
@@ -78,6 +79,8 @@ struct PlatformState
 
     // Current keyboard layout.
     LayoutType keyboard_layout;
+
+    PlatformSettings* prefs;
 
     SDL_Window* window;
 
