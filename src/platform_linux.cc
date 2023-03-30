@@ -342,6 +342,11 @@ b32
 platform_move_file(PATH_CHAR* src, PATH_CHAR* dest)
 {
     int res = rename(src, dest);
+    if ( res ) {
+        int err = errno;
+        milton_log("Warning: Could not move file '%s' to '%s': %s\n",
+                src, dest, strerror(errno));
+    }
 
     return res == 0;
 }
