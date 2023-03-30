@@ -24,7 +24,8 @@ unix_log_args(char* format, va_list args)
             platform_fname_at_config(fname, MAX_PATH);
             g_unix_logfile = platform_fopen(fname, "wb");
             if (!g_unix_logfile) {
-                fprintf(stderr, "ERROR: Can't open log file %s\n", fname);
+                int err = errno;
+                fprintf(stderr, "ERROR: Can't open log file %s: %s\n", fname, strerror(errno));
             }
         }
         if (g_unix_logfile) {
