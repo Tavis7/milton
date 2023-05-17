@@ -42,6 +42,11 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release")
 endif()
 
+if (MILTON_REVISION)
+  add_definitions(-DMILTON_REVISION="${MILTON_REVISION}")
+  unset(MILTON_REVISION CACHE)
+endif()
+
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_definitions(-DMILTON_DEBUG=1)
   set(SDL2_MAIN ${SDL2DIR}/build/linux64/lib/libSDL2maind.a)

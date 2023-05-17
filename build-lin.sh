@@ -5,7 +5,10 @@
 #
 # `-DCMAKE_BUILD_TYPE=Debug`
 # `-DCMAKE_BUILD_TYPE=Release`
+#
 # `-DCMAKE_CXX_FLAGS="-Wno-deprecated-declarations"`
+#
+# `-DMILTON_REVISION=$(git describe)`
 #
 # To reset cached CMake variables, `cmake --build build --target clean`
 #
